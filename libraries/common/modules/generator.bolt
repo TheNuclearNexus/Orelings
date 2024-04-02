@@ -35,10 +35,16 @@ class FoodConfig:
     favorite: str
 
 @dataclass
+class SocialConfig:
+    likes: list[str]
+    dislikes: list[str]
+
+@dataclass
 class Resourceling:
     id: str
     texture: str
     food: FoodConfig
+    social: SocialConfig
 
     def create_models(self):
         model f"{config.namespace}:entity/{self.id}/idle" {
@@ -129,7 +135,11 @@ class Resourceling:
                                     models: {
                                         idle: CURRENT_CMD,
                                         walk: (CURRENT_CMD + 1)
-                                    } 
+                                    },
+                                    social: {
+                                        likes: f"{config.namespace}:technical/entity/lings/{self.id}/likes",
+                                        dislikes: f"{config.namespace}:technical/entity/lings/{self.id}/dislikes"
+                                    }
                                 }
                             }
                         }
@@ -195,12 +205,48 @@ class Resourceling:
             if entity @s[tag=resourcelings.tag, gamemode=!creative] if score #success resourcelings.dummy matches 1 item modify entity @s weapon.mainhand resourcelings:reduce_count/1 
 
             advancement revoke @s only f"{config.namespace}:technical/entity/lings/{self.id}/feed"
+
+    def create_predicates(self):
+        like_terms = []
+        dislike_terms = []
+        
+        for l in self.social.likes:
+            like_terms.append({
+                "condition": "minecraft:entity_properties",
+                "entity": "this",
+                "predicate": {
+                    "nbt": f'{{Tags: ["{l}"]}}'
+                }
+            })
+
+        for l in self.social.dislikes:
+            dislike_terms.append({
+                "condition": "minecraft:entity_properties",
+                "entity": "this",
+                "predicate": {
+                    "nbt": f'{{Tags: ["{l}"]}}'
+                }
+            })
+
+
+        predicate f"{config.namespace}:technical/entity/lings/{self.id}/likes" {
+            "condition": "minecraft:any_of",
+            "terms": like_terms
+        }
+
+        predicate f"{config.namespace}:technical/entity/lings/{self.id}/dislikes" {
+            "condition": "minecraft:any_of",
+            "terms": dislike_terms
+        }
+    
+    
     def register(self):
-        memo (" " + str(self)):
+        memo ("  " + str(self)):
             self.create_walking_texture()
             self.create_models()
             self.create_spawn_function()
             self.create_advancements()
+            self.create_predicates()
 
             print(f'Registered resourceling "{self.id}"')
 

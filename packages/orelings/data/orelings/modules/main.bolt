@@ -1,4 +1,4 @@
-from common:generator import Resourceling, FoodConfig 
+from common:generator import Resourceling, FoodConfig, SocialConfig
 
 resourcelings = [
     Resourceling(
@@ -6,6 +6,10 @@ resourcelings = [
         "block/coal_ore",
         FoodConfig(
             favorite="minecraft:rotten_flesh"
+        ),
+        SocialConfig(
+            likes=["orelings.diamond"],
+            dislikes=[]
         )
     ),
     Resourceling(
@@ -13,6 +17,10 @@ resourcelings = [
         "block/diamond_ore",
         FoodConfig(
             favorite="minecraft:cake"
+        ),
+        SocialConfig(
+            likes=["orelings.coal"],
+            dislikes=["orelings.emerald"]
         )
     )
 ]

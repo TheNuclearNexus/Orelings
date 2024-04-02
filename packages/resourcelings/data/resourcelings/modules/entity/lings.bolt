@@ -109,18 +109,29 @@ function ~/second_clock:
 
     scoreboard players remove @s[scores={resourcelings.feed_cooldown=1..}] resourcelings.feed_cooldown 1
 
+    unless entity @p[distance=..32] return 0
+
     if predicate ../chance/lose_hunger function ./lose_hunger:
         scoreboard players remove @s resourcelings.hunger 3
 
-        if score @s resourcelings.hunger matches ..30:
+        if score @s resourcelings.hunger matches ..30 function ~/unhappy:
             function ./emote/hungry/spawn
+            scoreboard players remove @s resourcelings.happiness 4
 
     if score @s resourcelings.hunger matches ..10:
         scoreboard players remove @s resourcelings.happiness 2
 
-    if predicate ../chance/check_happiness function ./check_happiness:
-        store result score #num_resourcelings resourcelings.dummy if entity @e[type=wandering_trader,tag=resourcelings.entity,distance=0.001..8]
+    data modify storage resourcelings:temp social set from entity @s ArmorItems[3].tag.resourcelings.social
+    if predicate ../chance/check_happiness function ./check_happiness with storage resourcelings:temp social:
         scoreboard players operation #inital_happiness resourcelings.dummy = @s resourcelings.happiness
+        
+        store result score #num_resourcelings resourcelings.dummy if entity @e[type=wandering_trader,tag=resourcelings.entity,distance=0.001..8]
+        $execute store result score #num_liked resourcelings.dummy if entity @e[type=wandering_trader,tag=resourcelings.entity,predicate=$(likes),distance=0.001..8]
+        $execute store result score #num_disliked resourcelings.dummy if entity @e[type=wandering_trader,tag=resourcelings.entity,predicate=$(dislikes),distance=0.001..8]
+
+        scoreboard players operation @s resourcelings.happiness += #num_liked resourcelings.dummy
+        scoreboard players operation @s resourcelings.happiness -= #num_disliked resourcelings.dummy
+
 
         if score #num_resourcelings resourcelings.dummy matches 0:
             scoreboard players remove @s resourcelings.happiness 1
@@ -137,10 +148,15 @@ function ~/second_clock:
         if score #num_resourcelings resourcelings.dummy matches 10..:
             scoreboard players remove @s resourcelings.happiness 5
 
+
         if score @s resourcelings.happiness < #inital_happiness resourcelings.dummy:
             function ./emote/sad/spawn
         if score @s resourcelings.happiness > #inital_happiness resourcelings.dummy:
-            function ./emote/happy/spawn
+            unless score #inital_happiness resourcelings.dummy matches 100:
+                function ./emote/happy/spawn
+
+    if score @s resourcelings.happiness matches 101..:
+        scoreboard players set @s resourcelings.happiness 100
 
     if score @s resourcelings.hunger matches ..0 function ./death/hunger:
         kill @s
