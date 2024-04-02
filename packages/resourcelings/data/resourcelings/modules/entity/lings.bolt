@@ -95,7 +95,7 @@ predicate ../chance/lose_happiness_on_hit {
 
 predicate ../chance/lose_hunger {
     "condition": "minecraft:random_chance",
-    "chance": 0.02
+    "chance": 0.03
 }
 
 predicate ../chance/check_happiness {
