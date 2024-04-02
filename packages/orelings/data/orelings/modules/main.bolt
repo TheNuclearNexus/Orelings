@@ -1,0 +1,32 @@
+from common:generator import Resourceling, FoodConfig 
+
+resourcelings = [
+    Resourceling(
+        "coal", 
+        "block/coal_ore",
+        FoodConfig(
+            favorite="minecraft:rotten_flesh"
+        )
+    ),
+    Resourceling(
+        "diamond", 
+        "block/diamond_ore",
+        FoodConfig(
+            favorite="minecraft:cake"
+        )
+    )
+]
+
+
+for r in resourcelings:
+    r.register()
+
+append function_tag minecraft:load {
+    "values": [
+        "orelings:load"
+    ]
+}
+
+function ./load:
+    tellraw @a "Orelings Loaded"
+

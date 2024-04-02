@@ -1,0 +1,10 @@
+
+pipeline:
+  - mecha
+
+require:
+  - bolt
+
+meta:
+  bolt:
+    entrypoint: "*"

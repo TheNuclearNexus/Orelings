@@ -1,0 +1,30 @@
+
+append function_tag minecraft:load {
+    "values": [
+        "resourcelings:load"
+    ]
+}
+
+append function_tag minecraft:tick {
+    "values": [
+        "resourcelings:tick"
+    ]
+}
+
+function ./load:
+    tellraw @a "Resourcelings Loaded"
+    scoreboard objectives add resourcelings.happiness dummy
+    scoreboard objectives add resourcelings.hunger dummy
+    scoreboard objectives add resourcelings.thirst dummy
+    scoreboard objectives add resourcelings.feed_cooldown dummy
+
+    scoreboard objectives add resourcelings.dummy dummy
+    
+    schedule function ./second_clock 1s replace
+    
+function ./tick:
+    as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/tick
+
+function ./second_clock:
+    as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/second_clock
+    schedule function ~/ 1s
