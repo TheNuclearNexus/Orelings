@@ -2,6 +2,7 @@ from beet.contrib.vanilla import Vanilla
 from beet import Texture
 from PIL import Image
 from dataclasses import dataclass
+from contextlib import contextmanager
 
 config = ctx.meta.get("common")
 
@@ -30,6 +31,14 @@ def register(id, block_texture):
     
 
     
+@contextmanager
+def raycast(entity_tag: str):
+    anchored eyes positioned ^ ^ ^ function ~/raycast:
+        positioned ~-0.01 ~-0.99 ~-0.01 as @e[dx=0,type=minecraft:wandering_trader,tag=entity_tag,limit=1]:
+            positioned ~-0.99 ~0.99 ~-0.99 if entity @s[dx=0] at @s return run function ~/as_entity:
+                yield 
+        if entity @s[distance=..5,tag=!resourcelings.tag] positioned ^ ^ ^0.01 function ~/
+
 @dataclass
 class FoodConfig:
     favorite: str
@@ -40,11 +49,19 @@ class SocialConfig:
     dislikes: list[str]
 
 @dataclass
+class ShedConfig:
+    id: str = None
+    loot: str = None
+    cooldown: int = 120
+
+
+@dataclass
 class Resourceling:
     id: str
     texture: str
     food: FoodConfig
     social: SocialConfig
+    shed: ShedConfig
 
     def create_models(self):
         model f"{config.namespace}:entity/{self.id}/idle" {
@@ -57,6 +74,23 @@ class Resourceling:
 
         model f"{config.namespace}:entity/{self.id}/walk" {
             "parent": "resourcelings:entity/common/walk",
+            "textures": {
+                "0": "resourcelings:entity/common/face",
+                "1": self.texture,
+                "2": f"{config.namespace}:entity/{self.id}/walk"
+            }
+        }
+
+        model f"{config.namespace}:entity/{self.id}/idle_big" {
+            "parent": "resourcelings:entity/common/idle_big",
+            "textures": {
+                "0": "resourcelings:entity/common/face",
+                "1": self.texture
+            }
+        }
+
+        model f"{config.namespace}:entity/{self.id}/walk_big" {
+            "parent": "resourcelings:entity/common/walk_big",
             "textures": {
                 "0": "resourcelings:entity/common/face",
                 "1": self.texture,
@@ -83,8 +117,30 @@ class Resourceling:
             }
         )
 
+        base_model.data["overrides"].append(
+            {
+                "predicate": {
+                    "custom_model_data": (CURRENT_CMD + 2)
+                },
+                "model": f"{config.namespace}:entity/{self.id}/idle_big"
+            }
+        )
+
+        base_model.data["overrides"].append(
+            {
+                "predicate": {
+                    "custom_model_data": (CURRENT_CMD + 3)
+                },
+                "model": f"{config.namespace}:entity/{self.id}/walk_big"
+            }
+        )
+
     def create_walking_texture(self):
-        texture = vanilla.assets.textures["minecraft:" + self.texture]
+        if ':' not in self.texture:
+            texture = vanilla.assets.textures["minecraft:" + self.texture]
+        else:
+            texture = ctx.assets.textures[self.texture]
+
         image = texture.image
 
         walking_image = Image.new('RGBA', [32, 96])
@@ -115,13 +171,52 @@ class Resourceling:
                 ]
             }
         })
+    def create_droplings_loottable(self):
+        if self.shed.id:
+            entry = {
+                "type": "minecraft:item",
+                "name": self.shed.id
+            }
+        elif self.shed.loot:
+            entry = {
+                "type": "minecraft:loot_table",
+                "name": self.shed.loot
+            }
+        else:
+            raise f"{self.id} must have either a loot table or id set for ShedConfig"
 
+        loot_table f"{config.namespace}:technical/droplings/{self.id}" {
+            "pools": [
+                {
+                    "rolls": 1,
+                    "entries": [
+                        {
+                           **entry,
+                           "functions": [
+                                {
+                                    "function": "minecraft:set_count",
+                                    "count": {
+                                        "type": "minecraft:score",
+                                        "target": {
+                                            "type": "minecraft:fixed",
+                                            "name": "#count"
+                                        },
+                                        "score": "resourcelings.dummy"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
     def create_spawn_function(self):
         model_id = f"minecraft:{config.model_item.split('/')[-1]}"
         append function f"{config.namespace}:entity/lings/{self.id}":
-            function ~/spawn:
+            function ~/create_entity:
                 summon wandering_trader ~ ~ ~ {
-                    Tags:["smithed.entity", "resourcelings.entity", f"{config.namespace}.{self.id}"],
+                    Tags:["smithed.entity", "resourcelings.entity", f"{config.namespace}.{self.id}", "resourcelings.tag"],
+                    Team: "smithed.prevent_aggression",
                     Silent: 1b,
                     Offers: {Recipes: []},
                     ArmorItems: [
@@ -132,6 +227,7 @@ class Resourceling:
                             tag: {
                                 CustomModelData: 4250000,
                                 resourcelings: {
+                                    id: f"{config.namespace}.{self.id}",
                                     models: {
                                         idle: CURRENT_CMD,
                                         walk: (CURRENT_CMD + 1)
@@ -139,6 +235,10 @@ class Resourceling:
                                     social: {
                                         likes: f"{config.namespace}:technical/entity/lings/{self.id}/likes",
                                         dislikes: f"{config.namespace}:technical/entity/lings/{self.id}/dislikes"
+                                    },
+                                    shed: {
+                                        loot_table: f"{config.namespace}:technical/droplings/{self.id}",
+                                        cooldown: self.shed.cooldown
                                     }
                                 }
                             }
@@ -164,7 +264,71 @@ class Resourceling:
                     DeathTime: 19s
                 }
 
-                as @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] function resourcelings:entity/lings/common/spawn
+            function ~/spawn_big:
+                execute function ~/../create_entity
+
+                as @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1, tag=resourcelings.tag] function ~/set:
+                    tag @s add resourcelings.big 
+
+                    data modify entity @s ArmorItems[3].tag.resourcelings.models set value {
+                        idle: (CURRENT_CMD + 2),
+                        walk: (CURRENT_CMD + 3)
+                    }
+
+                    function resourcelings:entity/lings/common/spawn
+
+            function ~/spawn_natural:
+                execute function ~/../create_entity
+                
+                as @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1, tag=resourcelings.tag] function ~/set:
+                    tag @s add resourcelings.natural
+
+                    function resourcelings:entity/lings/common/spawn
+
+            function ~/spawn:
+                execute function ~/../create_entity 
+
+                as @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1, tag=resourcelings.tag] function resourcelings:entity/lings/common/spawn
+
+    def create_bundle_functions(self):
+        advancement f"{config.namespace}:technical/entity/lings/{self.id}/bundle" {
+            "criteria": {
+                "requirement": {
+                    "trigger": "minecraft:player_interacted_with_entity",
+                    "conditions": {
+                        "item": {
+                            "items": [ "minecraft:bundle" ],
+                        
+                        },
+                        "entity": {
+                            "nbt": f'{{Tags: ["{config.namespace}.{self.id}"]}}'
+                        }
+                    }
+                }
+            },
+            "rewards": {
+                "function": f"{config.namespace}:entity/lings/{self.id}/bundle"
+            }
+        }
+            
+        function f"{config.namespace}:entity/lings/{self.id}/bundle":
+            if data entity @s SelectedItem.tag.Items return run function ~/clean
+            tag @s remove resourcelings.tag
+
+            with raycast(f"{config.namespace}.{self.id}"):
+                tag @p[advancements={f"{config.namespace}:technical/entity/lings/{self.id}/bundle"=true}] add resourcelings.tag
+
+                function resourcelings:entity/lings/common/bundle {
+                    tag: f"{config.namespace}.{self.id}", 
+                    spawnFunction: f"{config.namespace}:entity/lings/{self.id}/spawn"
+                }
+
+            if entity @s[tag=resourcelings.tag] loot replace entity @s weapon.mainhand loot resourcelings:technical/resourceling_bundle
+            execute function ~/clean:
+                tag @s remove resourcelings.tag
+                advancement revoke @s only f"{config.namespace}:technical/entity/lings/{self.id}/bundle"
+
+
 
     def create_advancements(self):
         advancement f"{config.namespace}:technical/entity/lings/{self.id}/feed" {
@@ -192,18 +356,16 @@ class Resourceling:
             data modify storage resourcelings:temp food set value {used: "", favorite: ""}
             data modify storage resourcelings:temp food.used set from entity @s SelectedItem.id
             data modify storage resourcelings:temp food.used_id set string storage resourcelings:temp food.used 10
+                
+            with raycast(f"{config.namespace}.{self.id}"):
+                tag @p[advancements={f"{config.namespace}:technical/entity/lings/{self.id}/feed"=true}] add resourcelings.tag
+                data modify storage resourcelings:temp food.favorite set value self.food.favorite
+                store result score #success resourcelings.dummy function resourcelings:entity/lings/common/feed with storage resourcelings:temp food
 
-            anchored eyes positioned ^ ^ ^ function ~/raycast:
-                positioned ~-0.01 ~-0.99 ~-0.01 as @e[dx=0,type=minecraft:wandering_trader,tag=f"{config.namespace}.{self.id}",limit=1]:
-                    positioned ~-0.99 ~0.99 ~-0.99 if entity @s[dx=0] at @s return run function ~/as_entity:
-                        tag @p[advancements={f"{config.namespace}:technical/entity/lings/{self.id}/feed"=true}] add resourcelings.tag
-                        data modify storage resourcelings:temp food.favorite set value self.food.favorite
-                        store result score #success resourcelings.dummy function resourcelings:entity/lings/common/feed with storage resourcelings:temp food
-
-                if entity @s[distance=..5,tag=!resourcelings.tag] positioned ^ ^ ^0.01 function ~/
 
             if entity @s[tag=resourcelings.tag, gamemode=!creative] if score #success resourcelings.dummy matches 1 item modify entity @s weapon.mainhand resourcelings:reduce_count/1 
 
+            tag @s remove resourcelings.tag
             advancement revoke @s only f"{config.namespace}:technical/entity/lings/{self.id}/feed"
 
     def create_predicates(self):
@@ -241,14 +403,16 @@ class Resourceling:
     
     
     def register(self):
-        memo ("  " + str(self)):
-            self.create_walking_texture()
-            self.create_models()
-            self.create_spawn_function()
-            self.create_advancements()
-            self.create_predicates()
+        # memo (" .  " + str(self)):
+        self.create_walking_texture()
+        self.create_models()
+        self.create_spawn_function()
+        self.create_advancements()
+        self.create_predicates()
+        self.create_bundle_functions()
+        self.create_droplings_loottable()
 
-            print(f'Registered resourceling "{self.id}"')
+        print(f'Registered resourceling "{self.id}"')
 
         global CURRENT_CMD
-        CURRENT_CMD += 2
+        CURRENT_CMD += 4

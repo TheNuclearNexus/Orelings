@@ -1,6 +1,7 @@
-from common:generator import Resourceling, FoodConfig, SocialConfig
+from common:generator import Resourceling, FoodConfig, SocialConfig, ShedConfig
 
-resourcelings = [
+RESOURCELINGS = [
+    # Coal
     Resourceling(
         "coal", 
         "block/coal_ore",
@@ -9,9 +10,109 @@ resourcelings = [
         ),
         SocialConfig(
             likes=["orelings.diamond"],
-            dislikes=[]
+            dislikes=["orelings.uranium"]
+        ),
+        ShedConfig(
+            id="minecraft:coal"
         )
     ),
+    # Iron
+    Resourceling(
+        "iron", 
+        "block/iron_ore",
+        FoodConfig(
+            favorite="minecraft:apple"
+        ),
+        SocialConfig(
+            likes=["orelings.copper"],
+            dislikes=["orelings.gold", "orelings.tin"]
+        ),
+        ShedConfig(
+            id="minecraft:raw_iron",
+            cooldown=120
+        )
+    ),
+    # Gold
+    Resourceling(
+        "gold", 
+        "block/gold_ore",
+        FoodConfig(
+            favorite="minecraft:cooked_porkchop"
+        ),
+        SocialConfig(
+            likes=["orelings.tin"],
+            dislikes=["orelings.iron","orelings.copper"]
+        ),
+        ShedConfig(
+            id="minecraft:raw_gold",
+            cooldown=180
+        )
+    ),
+    # Copper
+    Resourceling(
+        "copper", 
+        "block/copper_ore",
+        FoodConfig(
+            favorite="minecraft:dried_kelp"
+        ),
+        SocialConfig(
+            likes=["orelings.iron", "orelings.redstone"],
+            dislikes=["orelings.gold", "orelings.tin"]
+        ),
+        ShedConfig(
+            id="minecraft:raw_copper",
+            cooldown=90
+        )
+    ),
+    # Redstone
+    Resourceling(
+        "redstone", 
+        "block/redstone_ore",
+        FoodConfig(
+            favorite="minecraft:melon_slice"
+        ),
+        SocialConfig(
+            likes=["orelings.copper", "orelings.uranium"],
+            dislikes=["orelings.lapis_lazuli"]
+        ),
+        ShedConfig(
+            id="minecraft:redstone",
+            cooldown=90
+        )
+    ),
+    # Lapis
+    Resourceling(
+        "lapis_lazuli", 
+        "block/lapis_ore",
+        FoodConfig(
+            favorite="minecraft:glow_berries"
+        ),
+        SocialConfig(
+            likes=["orelings.titanium"],
+            dislikes=["orelings.redstone"]
+        ),
+        ShedConfig(
+            id="minecraft:lapis_lazuli",
+            cooldown=90
+        )
+    ),
+    # Emerald
+    Resourceling(
+        "emerald", 
+        "block/emerald_ore",
+        FoodConfig(
+            favorite="minecraft:baked_potato"
+        ),
+        SocialConfig(
+            likes=[],
+            dislikes=["orelings.diamond"]
+        ),
+        ShedConfig(
+            id="minecraft:emerald",
+            cooldown=180
+        )
+    ),
+    # Diamond
     Resourceling(
         "diamond", 
         "block/diamond_ore",
@@ -20,14 +121,125 @@ resourcelings = [
         ),
         SocialConfig(
             likes=["orelings.coal"],
-            dislikes=["orelings.emerald"]
+            dislikes=["orelings.emerald", "orelings.titanium"]
+        ),
+        ShedConfig(
+            id="minecraft:diamond",
+            cooldown=240
+        )
+    ),
+]
+
+NETHER_RESOURCELINGS = [
+    ## Nether Ores
+    # Quartz
+    Resourceling(
+        "quartz", 
+        "block/nether_quartz_ore",
+        FoodConfig(
+            favorite="minecraft:sweet_berries"
+        ),
+        SocialConfig(
+            likes=["orelings.lapis_lazuli"],
+            dislikes=["orelings.redstone"]
+        ),
+        ShedConfig(
+            id="minecraft:quartz",
+            cooldown=180
+        )
+    ),
+    # Ancient Debris
+    Resourceling(
+        "debris", 
+        "block/ancient_debris_side",
+        FoodConfig(
+            favorite="minecraft:golden_apple"
+        ),
+        SocialConfig(
+            likes=[],
+            dislikes=[
+                "orelings.coal", 
+                "orelings.iron", 
+                "orelings.copper", 
+                "orelings.gold",
+                "orelings.diamond",
+                "orelings.redstone",
+                "orelings.lapis_lazuli",
+                "orelings.emerald",
+                "orelings.tin",
+                "orelings.titanium",
+                "orelings.uranium"
+            ]
+        ),
+        ShedConfig(
+            id="minecraft:ancient_debris",
+            cooldown=1800
         )
     )
 ]
 
 
-for r in resourcelings:
-    r.register()
+MECH_RESOURCELINGS = [
+    ## Mechanization Compat
+    # Tin
+    Resourceling(
+        "tin", 
+        "mechanization:base/block/tin_ore",
+        FoodConfig(
+            favorite="minecraft:cooked_cod"
+        ),
+        SocialConfig(
+            likes=["orelings.gold"],
+            dislikes=["orelings.copper", "orelings.iron"]
+        ),
+        ShedConfig(
+            loot="mechanization:base/tin_raw",
+            cooldown=180
+        )
+    ),
+    # Titanium
+    Resourceling(
+        "titanium", 
+        "mechanization:base/block/titanium_ore",
+        FoodConfig(
+            favorite="minecraft:golden_carrot"
+        ),
+        SocialConfig(
+            likes=["orelings.lapis_lazuli"],
+            dislikes=["orelings.diamond"]
+        ),
+        ShedConfig(
+            loot="mechanization:base/titanium_raw",
+            cooldown=240
+        )
+    ),
+    # Uranium
+    Resourceling(
+        "uranium", 
+        "mechanization:base/block/uranium_ore",
+        FoodConfig(
+            favorite="minecraft:poisonous_potato"
+        ),
+        SocialConfig(
+            likes=["orelings.redstone"],
+            dislikes=["orelings.coal"]
+        ),
+        ShedConfig(
+            loot="mechanization:base/uranium_raw",
+            cooldown=240
+        )
+    )
+]
+
+function ./debug/spawn_all:
+    for r in RESOURCELINGS + NETHER_RESOURCELINGS:
+        r.register()
+        function f"orelings:entity/lings/{r.id}/spawn"
+        function f"orelings:entity/lings/{r.id}/spawn_big"
+    if score #mech.ver.major load.status matches 0.. function ~/mech: 
+        for r in MECH_RESOURCELINGS:
+            r.register()
+            function f"orelings:entity/lings/{r.id}/spawn"
 
 append function_tag minecraft:load {
     "values": [
@@ -35,6 +247,17 @@ append function_tag minecraft:load {
     ]
 }
 
+append function_tag minecraft:tick {
+    "values": [
+        "orelings:tick"
+    ]
+}
+
 function ./load:
     tellraw @a "Orelings Loaded"
 
+    scoreboard objectives add orelings.dummy dummy
+
+function ./tick:
+    as @e[type=zombie, tag=!orelings.checked] at @s function ./entity/lings/try_spawn_overworld
+    as @e[type=piglin, tag=!orelings.checked] at @s function ./entity/lings/try_spawn_nether

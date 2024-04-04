@@ -17,14 +17,46 @@ function ./load:
     scoreboard objectives add resourcelings.hunger dummy
     scoreboard objectives add resourcelings.thirst dummy
     scoreboard objectives add resourcelings.feed_cooldown dummy
+    scoreboard objectives add resourcelings.shed_cooldown dummy
+    scoreboard objectives add resourcelings.despawn_timer dummy
 
     scoreboard objectives add resourcelings.dummy dummy
+    scoreboard objectives add resourcelings.wfoas minecraft.used:minecraft.warped_fungus_on_a_stick
     
     schedule function ./second_clock 1s replace
+    schedule function ./5_second_clock 5s replace
+    schedule function ./10_second_clock 10s replace
     
 function ./tick:
     as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/tick
 
+    as @a[scores={resourcelings.wfoas=1..}] at @s function ./entity/player/wfoas
+    
+    prepend function ./entity/player/wfoas:
+        scoreboard players reset @s resourcelings.wfoas
+
+        data modify storage resourcelings:temp wfoas set value {}
+        data modify storage resourcelings:temp wfoas.mainhand set from entity @s SelectedItem
+        data modify storage resourcelings:temp wfoas.offhand set from entity @s Inventory[{Slot: -106b}]
+
+        if data storage resourcelings:temp wfoas.mainhand{id: "minecraft:warped_fungus_on_a_stick"} function ~/use_mainhand:
+            data modify storage resourcelings:temp wfoas.item set from storage resourcelings:temp wfoas.mainhand
+            data modify storage resourcelings:temp wfoas.hand set value "mainhand"
+
+        unless data storage resourcelings:temp wfoas.mainhand{id: "minecraft:warped_fungus_on_a_stick"}:
+            if data storage resourcelings:temp wfoas.offhand{id: "minecraft:warped_fungus_on_a_stick"} function ~/use_offhand:
+                data modify storage resourcelings:temp wfoas.item set from storage resourcelings:temp wfoas.offhand
+                data modify storage resourcelings:temp wfoas.hand set value "offhand"
+                
+
 function ./second_clock:
     as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/second_clock
     schedule function ~/ 1s
+
+function ./5_second_clock:
+    as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/5_second_clock
+    schedule function ~/ 5s
+
+function ./10_second_clock:
+    as @e[type=minecraft:wandering_trader,tag=resourcelings.entity] at @s function ./entity/lings/10_second_clock
+    schedule function ~/ 10s

@@ -13,9 +13,15 @@ resource_pack:
   load:
     - "."
 
+require:
+ - remove
+
 meta:
   common:
     namespace: "orelings"
     model_item: "minecraft:item/stone"
+
+  remove:
+   - mechanization
 
 extend: ../../beet-common.yaml

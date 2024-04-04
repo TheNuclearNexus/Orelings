@@ -1,0 +1,33 @@
+append function ../entity/player/wfoas:
+    if data storage resourcelings:temp wfoas.item.tag.smithed{id: "resourcelings:bundle"} function ./bundle/use
+
+function ~/use:
+
+     
+    function ~/raycast:
+        unless block ^ ^ ^0.1 #resourcelings:air align xyz positioned ~.5 ~1000 ~.5 return run function ~/../spawn with storage resourcelings:temp wfoas.item.tag.resourcelings:
+            store result score #big resourcelings.dummy data get storage resourcelings:temp wfoas.item.tag.resourcelings.big
+
+            $execute if score #big resourcelings.dummy matches 0 run function $(spawnFunction)
+            $execute if score #big resourcelings.dummy matches 1 run function $(spawnFunction)_big
+
+            $scoreboard players set @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] resourcelings.happiness $(happiness)
+            $scoreboard players set @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] resourcelings.hunger $(hunger)
+            $scoreboard players set @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] resourcelings.thirst $(thirst)
+
+            unless data storage resourcelings:temp wfoas.item.tag.display{Name: '{"translate":"item.minecraft.bundle","italic":false}'}:
+                data modify entity @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] CustomName set from storage resourcelings:temp wfoas.item.tag.display.Name
+
+            store result score @e[type=wandering_trader,tag=resourcelings.entity,sort=nearest,limit=1] resourcelings.dummy schedule function ~/../../tp 1t:
+                store result score #gameTime resourcelings.dummy time query gametime
+                
+                as @e[type=wandering_trader,tag=resourcelings.entity] at @s if score @s resourcelings.dummy = #gameTime resourcelings.dummy:
+                    tp ~ ~-1000 ~
+
+            return 1
+        
+        if entity @s[distance=..5] positioned ^ ^ ^0.1 return run function ~/
+        return 0
+    
+    anchored eyes positioned ^ ^ ^ if function ~/raycast function ~/set_bundle with storage resourcelings:temp wfoas:
+        $item replace entity @s weapon.$(hand) with bundle 
